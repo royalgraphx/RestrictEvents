@@ -145,23 +145,9 @@ static sysctl_oid *sysctl_by_name(sysctl_oid_list *sysctl_children, const char *
 
 static mach_vm_address_t org_sysctl_vmm_present;
 static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
-	char procname[64];
-	proc_name(proc_pid(req->p), procname, sizeof(procname));
-
-	// Always return 0 when revsbvmmIsSet is true
-	if (revsbvmmIsSet) {
-		int hv_vmm_present_off = 0;
-		return SYSCTL_OUT(req, &hv_vmm_present_off, sizeof(hv_vmm_present_off));
-	}
-
-	// Check for AssetCache condition if revassetIsSet
-	else if (revassetIsSet && (strncmp(procname, "AssetCache",  sizeof("AssetCache")-1) == 0)) {
-		int hv_vmm_present_off = 0;
-		return SYSCTL_OUT(req, &hv_vmm_present_off, sizeof(hv_vmm_present_off));
-	}
-
-	// Call the original sysctl function in all other cases
-	return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
+    // Always return 0, indicating no VMM is present
+    int hv_vmm_present_off = 0;
+    return SYSCTL_OUT(req, &hv_vmm_present_off, sizeof(hv_vmm_present_off));
 }
 
 
