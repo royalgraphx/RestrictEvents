@@ -147,24 +147,20 @@ static mach_vm_address_t org_sysctl_vmm_present;
 static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
 	char procname[64];
 	proc_name(proc_pid(req->p), procname, sizeof(procname));
-	// SYSLOG("supd", "\n\n\n\nsoftwareupdated vmm_present %d - >>> %s <<<<\n\n\n\n", arg2, procname);
-	if (revsbvmmIsSet && (
-		// Always return 1 in recovery/installers
-		(lilu.getRunMode() & LiluAPI::RunningInstallerRecovery) != 0 ||
-		// Otherwise, check if userspace OS updaters/installers
-		(
-		 strcmp(procname, "softwareupdated") == 0 ||
-		 strcmp(procname, "com.apple.Mobile") == 0 ||
-		 strcmp(procname, "osinstallersetup") == 0    // Primarily for 'Install macOS.app'
-		)
-	)) {
-		int hv_vmm_present_on = 1;
-		return SYSCTL_OUT(req, &hv_vmm_present_on, sizeof(hv_vmm_present_on));
-	} else if (revassetIsSet && (strncmp(procname, "AssetCache",  sizeof("AssetCache")-1) == 0)) {
+
+	// Always return 0 when revsbvmmIsSet is true
+	if (revsbvmmIsSet) {
 		int hv_vmm_present_off = 0;
 		return SYSCTL_OUT(req, &hv_vmm_present_off, sizeof(hv_vmm_present_off));
 	}
 
+	// Check for AssetCache condition if revassetIsSet
+	else if (revassetIsSet && (strncmp(procname, "AssetCache",  sizeof("AssetCache")-1) == 0)) {
+		int hv_vmm_present_off = 0;
+		return SYSCTL_OUT(req, &hv_vmm_present_off, sizeof(hv_vmm_present_off));
+	}
+
+	// Call the original sysctl function in all other cases
 	return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
 }
 
